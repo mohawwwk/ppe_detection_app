@@ -20,8 +20,8 @@ app.secret_key = 'your-secret-key-change-this-to-something-random-and-long'
 # You can use Gmail, SendGrid, or any SMTP service
 EMAIL_CONFIG = {
     'enabled': True,  # Set to True to enable email alerts
-    'sender_email': 'sareenmohak@gmail.com',
-    'sender_password': 'lybo oizs kcnm tzbe',  # Use app-specific password for Gmail
+    'sender_email': '????????',
+    'sender_password': '?????????',  # Use app-specific password for Gmail
     'smtp_server': 'smtp.gmail.com',
     'smtp_port': 587
 }
