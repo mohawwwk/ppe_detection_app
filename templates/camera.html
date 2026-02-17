@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera - PPE Detection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5568d3;
+            --secondary: #764ba2;
+            --bg-light: #f5f5f5;
+            --bg-white: #ffffff;
+            --text-dark: #333;
+            --text-light: #666;
+            --border: #ddd;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-light);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: background 0.3s;
+        }
+
+        body.dark-mode {
+            --bg-light: #1a1a1a;
+            --bg-white: #2d2d2d;
+            --text-dark: #e0e0e0;
+            --text-light: #b0b0b0;
+            --border: #444;
+        }
+
+        .container {
+            background: var(--bg-white);
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            max-width: 1000px;
+            width: 100%;
+            padding: 30px;
+            transition: background 0.3s;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header h1 {
+            color: var(--text-dark);
+            font-size: 28px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .user-info {
+            text-align: right;
+        }
+
+        .user-info p {
+            color: var(--text-light);
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .user-info strong {
+            color: var(--text-dark);
+        }
+
+        .theme-toggle {
+            padding: 8px 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.3s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--primary-dark);
+        }
+
+        .logout-btn {
+            padding: 8px 15px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .camera-section h2,
+        .ppe-section h2 {
+            color: var(--text-dark);
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+
+        .camera-feed {
+            position: relative;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        canvas {
+            display: none;
+        }
+
+        .camera-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .ppe-section {
+            background: var(--bg-light);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .ppe-list {
+            list-style: none;
+        }
+
+        .ppe-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            background: var(--bg-white);
+            border-radius: 5px;
+            border-left: 4px solid var(--primary);
+            color: var(--text-dark);
+        }
+
+        .message {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: var(--primary);
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 4px solid var(--bg-light);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .role-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .results-container {
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .results-pass {
+            background: #d4edda;
+            border: 2px solid var(--success);
+        }
+
+        .results-fail {
+            background: #f8d7da;
+            border: 2px solid var(--danger);
+        }
+
+        .results-container h2 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            margin-top: 0;
+        }
+
+        .results-pass h2 {
+            color: #155724;
+        }
+
+        .results-fail h2 {
+            color: #721c24;
+        }
+
+        .results-container p {
+            margin: 10px 0;
+            font-size: 15px;
+        }
+
+        .detected-list {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 5px;
+        }
+
+        .detected-list strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .detection-item {
+            padding: 8px 0;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .confidence-bar {
+            width: 80px;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: var(--success);
+            transition: width 0.3s;
+        }
+
+        .retry-button {
+            margin-top: 20px;
+            background: var(--primary);
+            color: white;
+        }
+
+        .retry-button:hover {
+            background: var(--primary-dark);
+        }
+
+        .history-link {
+            margin-top: 10px;
+            padding: 8px 15px;
+            background: var(--secondary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 13px;
+            transition: background 0.3s;
+        }
+
+        .history-link:hover {
+            background: #653a8a;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .header-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .user-info {
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📷 Camera Check</h1>
+            <div class="header-right">
+                <button class="theme-toggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+                <div class="user-info">
+                    <p>Welcome, <strong>{{ username }}</strong></p>
+                    <p>Role: <strong>{{ role }}</strong></p>
+                    <div style="margin-top: 8px;">
+                        <button class="logout-btn" onclick="handleLogout()">Logout</button>
+                        <a href="/history" class="history-link">📊 History</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <div class="content">
+            <div class="camera-section">
+                <h2>Take Your Photo</h2>
+                <div class="camera-feed">
+                    <video id="cameraVideo" autoplay playsinline></video>
+                    <canvas id="photoCanvas"></canvas>
+                </div>
+                <div class="camera-controls">
+                    <button class="btn-primary" id="startBtn" onclick="startCamera()">Start Camera</button>
+                    <button class="btn-primary" id="captureBtn" onclick="capturePhoto()" style="display:none;">📸 Capture Photo</button>
+                </div>
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Processing your photo...</p>
+                </div>
+            </div>
+
+            <div class="ppe-section">
+                <h2>Required PPE</h2>
+                <div class="role-badge">{{ role }}</div>
+                <ul class="ppe-list">
+                    {% for item in required_ppe %}
+                    <li class="ppe-item">
+                        <strong>✓ {{ item }}</strong>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <p style="margin-top: 20px; color: var(--text-light); font-size: 14px;">
+                    Make sure you're wearing all required PPE before taking the photo. The system will check if you have everything!
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('cameraVideo');
+        const canvas = document.getElementById('photoCanvas');
+        const ctx = canvas.getContext('2d');
+        let cameraActive = false;
+
+        // Dark mode toggle
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        // Load dark mode preference
+        window.onload = function() {
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+            }
+        };
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user' }
+                });
+
+                video.srcObject = stream;
+                cameraActive = true;
+
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('captureBtn').style.display = 'block';
+                
+                showMessage('Camera started! Click "Capture Photo" when ready.', 'success');
+            } catch (error) {
+                showMessage('Error accessing camera: ' + error.message, 'error');
+            }
+        }
+
+        function capturePhoto() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            ctx.drawImage(video, 0, 0);
+
+            canvas.toBlob(blob => {
+                const reader = new FileReader();
+                reader.readAsDataURL(blob);
+
+                reader.onload = function(e) {
+                    sendPhotoToServer(e.target.result);
+                };
+            }, 'image/jpeg');
+        }
+
+        function sendPhotoToServer(imageData) {
+            document.getElementById('loading').style.display = 'block';
+
+            fetch('/upload-photo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    image: imageData
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    runPPEDetection(data.filename);
+                } else {
+                    document.getElementById('loading').style.display = 'none';
+                    showMessage('Error: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                showMessage('Error uploading photo: ' + error.message, 'error');
+            });
+        }
+
+        function runPPEDetection(filename) {
+            document.querySelector('.loading p').textContent = 'Analyzing PPE detection...';
+
+            fetch('/detect-ppe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    filename: filename
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.success) {
+                    showDetectionResults(data);
+                } else {
+                    showMessage('Error: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                showMessage('Error during detection: ' + error.message, 'error');
+            });
+        }
+
+        function showDetectionResults(data) {
+            let resultHTML = '';
+            
+            if (data.compliant) {
+                resultHTML = `
+                    <div class="results-container results-pass">
+                        <h2>✅ PASS - All PPE Detected!</h2>
+                        <p>You are fully compliant and ready to work!</p>
+                        <div class="detected-list">
+                            <strong>Detected PPE:</strong>
+                            ${data.detected_items.map(item => `
+                                <div class="detection-item">
+                                    <span>${item.item}</span>
+                                    <div class="confidence-bar">
+                                        <div class="confidence-fill" style="width: ${item.confidence}%"></div>
+                                    </div>
+                                    <span style="font-size: 12px; margin-left: 8px;">${item.confidence.toFixed(1)}%</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="retry-button" onclick="location.reload()">Take Another Photo</button>
+                    </div>
+                `;
+            } else {
+                resultHTML = `
+                    <div class="results-container results-fail">
+                        <h2>❌ FAIL - Missing PPE</h2>
+                        <p>You cannot proceed without the following PPE:</p>
+                        <p style="font-weight: bold; font-size: 16px; color: #721c24;">
+                            ${data.missing_ppe.join(', ')}
+                        </p>
+                        <div class="detected-list">
+                            <strong>Detected PPE:</strong>
+                            ${data.detected_ppe.length > 0 ? data.detected_items.filter(item => data.detected_ppe.includes(item.item)).map(item => `
+                                <div class="detection-item">
+                                    <span>${item.item}</span>
+                                    <div class="confidence-bar">
+                                        <div class="confidence-fill" style="width: ${item.confidence}%"></div>
+                                    </div>
+                                    <span style="font-size: 12px; margin-left: 8px;">${item.confidence.toFixed(1)}%</span>
+                                </div>
+                            `).join('') : 'No PPE detected'}
+                        </div>
+                        <button class="retry-button" onclick="location.reload()">Take Another Photo</button>
+                    </div>
+                `;
+            }
+
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = resultHTML;
+            messageDiv.style.display = 'block';
+        }
+
+        function handleLogout() {
+            if (confirm('Are you sure you want to logout?')) {
+                fetch('/logout')
+                    .then(() => {
+                        window.location.href = '/';
+                    });
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
+        }
+    </script>
+</body>
+</html>

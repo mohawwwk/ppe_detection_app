@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.so
+.Python
+venv/
+env/
+best.pt
+users.json
+detection_history.json
+.env
+.DS_Store
+*.log

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PPE Detection System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        .toggle {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+
+        .toggle a {
+            color: #667eea;
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .toggle a:hover {
+            text-decoration: underline;
+        }
+
+        .message {
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .form-section {
+            display: none;
+        }
+
+        .form-section.active {
+            display: block;
+        }
+
+        .ppe-list {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .ppe-list strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .ppe-list ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .ppe-list li {
+            padding: 4px 0;
+        }
+
+        h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ PPE Detection</h1>
+        <p class="subtitle">Construction Site Safety System</p>
+
+        <div id="message" class="message"></div>
+
+        <!-- LOGIN FORM -->
+        <div id="loginSection" class="form-section active">
+            <h2>Login</h2>
+            
+            <div class="form-group">
+                <label for="loginUsername">Username</label>
+                <input type="text" id="loginUsername" placeholder="Enter your username">
+            </div>
+
+            <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" placeholder="Enter your password">
+            </div>
+
+            <div class="form-group">
+                <label for="loginRole">Select Your Role</label>
+                <select id="loginRole">
+                    <option value="">-- Choose a role --</option>
+                </select>
+                <div id="loginPPEList" class="ppe-list" style="display:none;"></div>
+            </div>
+
+            <button onclick="handleLogin()">Login</button>
+
+            <div class="toggle">
+                Don't have an account? <a onclick="toggleForms()">Register here</a>
+            </div>
+        </div>
+
+        <!-- REGISTER FORM -->
+        <div id="registerSection" class="form-section">
+            <h2>Create Account</h2>
+            
+            <div class="form-group">
+                <label for="regUsername">Username</label>
+                <input type="text" id="regUsername" placeholder="Choose a username">
+            </div>
+
+            <div class="form-group">
+                <label for="regPassword">Password</label>
+                <input type="password" id="regPassword" placeholder="Create a password">
+            </div>
+
+            <div class="form-group">
+                <label for="regRole">Select Your Role</label>
+                <select id="regRole">
+                    <option value="">-- Choose a role --</option>
+                </select>
+                <div id="regPPEList" class="ppe-list" style="display:none;"></div>
+            </div>
+
+            <button onclick="handleRegister()">Register</button>
+
+            <div class="toggle">
+                Already have an account? <a onclick="toggleForms()">Login here</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Populate roles on page load
+        window.onload = function() {
+            populateRoles();
+        };
+
+        function populateRoles() {
+            const roles = JSON.parse('{{ roles | safe }}');
+            
+            const loginRoleSelect = document.getElementById('loginRole');
+            const regRoleSelect = document.getElementById('regRole');
+            
+            roles.forEach(role => {
+                const option1 = document.createElement('option');
+                option1.value = role;
+                option1.textContent = role;
+                loginRoleSelect.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = role;
+                option2.textContent = role;
+                regRoleSelect.appendChild(option2);
+            });
+        }
+
+        // Show/hide PPE requirements when role changes
+        document.getElementById('loginRole').addEventListener('change', function() {
+            showPPERequirements('login', this.value);
+        });
+
+        document.getElementById('regRole').addEventListener('change', function() {
+            showPPERequirements('register', this.value);
+        });
+
+        function showPPERequirements(section, role) {
+            if (!role) {
+                document.getElementById(section + 'PPEList').style.display = 'none';
+                return;
+            }
+
+            fetch(`/get-ppe-requirements?role=${role}`)
+                .then(response => response.json())
+                .then(data => {
+                    const ppeList = document.getElementById(section + 'PPEList');
+                    let html = '<strong>Required PPE:</strong><ul>';
+                    data.ppe.forEach(item => {
+                        html += `<li>✓ ${item}</li>`;
+                    });
+                    html += '</ul>';
+                    ppeList.innerHTML = html;
+                    ppeList.style.display = 'block';
+                });
+        }
+
+        function toggleForms() {
+            document.getElementById('loginSection').classList.toggle('active');
+            document.getElementById('registerSection').classList.toggle('active');
+            clearMessage();
+            clearForms();
+        }
+
+        function handleRegister() {
+            const username = document.getElementById('regUsername').value.trim();
+            const password = document.getElementById('regPassword').value.trim();
+            const role = document.getElementById('regRole').value;
+
+            if (!username || !password || !role) {
+                showMessage('Please fill in all fields!', 'error');
+                return;
+            }
+
+            fetch('/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password,
+                    role: role
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage(data.message + ' Switching to login...', 'success');
+                    setTimeout(() => toggleForms(), 2000);
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            })
+            .catch(error => showMessage('An error occurred!', 'error'));
+        }
+
+        function handleLogin() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const role = document.getElementById('loginRole').value;
+
+            if (!username || !password || !role) {
+                showMessage('Please fill in all fields!', 'error');
+                return;
+            }
+
+            fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password,
+                    role: role
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('Login successful! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/camera';
+                    }, 1500);
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            })
+            .catch(error => showMessage('An error occurred!', 'error'));
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
+        }
+
+        function clearMessage() {
+            document.getElementById('message').className = 'message';
+        }
+
+        function clearForms() {
+            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('regUsername').value = '';
+            document.getElementById('regPassword').value = '';
+        }
+    </script>
+</body>
+</html>
